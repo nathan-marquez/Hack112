@@ -7,7 +7,7 @@ def average(focus, n):
 
 def readCSV():
     d = dict()
-    with open('data.csv', 'r') as data:
+    with open('courseLog.csv', 'r') as data:
         csvReader = csv.reader(data)
         for line in csvReader:
             if line[0] not in d:
@@ -19,7 +19,7 @@ def readCSV():
     return d
 
 def writeCSV(data):
-    with open('data.csv', 'w') as f:
+    with open('courseLog.csv', 'w') as f:
         
         csvWriter = csv.writer(f)
         for className in data:
