@@ -7,6 +7,7 @@ from tkinter.ttk import *
 from tkinter import messagebox
 from dataclasses import make_dataclass
 import pickle, time, csv
+from PIL import Image, ImageTk
 
 #importing ML
 from ml import *
@@ -19,7 +20,7 @@ User = make_dataclass('User', [('style', tuple), ('courses', list)])
 testcourses = [('15112', 50), ('21127', 75), ('32141',60)]
 teststyle = (3,7,9)
 user = User(teststyle, testcourses) # style is formatted (Auditory#, Visual#, Tacticle#)
-courseLog = []
+
 #four categories of sessions
 types = ['HW','Reading','Note-Taking','Zoom']
 
@@ -28,13 +29,15 @@ status = 'Waiting to Start'
 
 #setup for appearances
 LARGEFONT =("Verdana", 35)
+MEDFONT = ("Verdana", 20)
 
-def updateLocalCourseLog(courseLog):
+def localList():
     datafile = open('courseLog.csv', 'r')
     datareader = csv.reader(datafile, delimiter=',')
     courseLog = []
     for row in datareader:
         courseLog.append(row) 
+    return courseLog
 
 #multiple page implementation from https://www.geeksforgeeks.org/tkinter-application-to-switch-between-different-page-frames/ 
 class tkinterApp(tk.Tk): 
@@ -43,12 +46,11 @@ class tkinterApp(tk.Tk):
     def __init__(self, *args, **kwargs):  
         #create initial courseLog
         updateLocalCourseLog(courseLog)
-
         # __init__ function for class Tk 
         tk.Tk.__init__(self, *args, **kwargs) 
         # self.geometry("300x410")
         # creating a container 
-        container = tk.Frame(self)   
+        container = tk.Frame(self)
         container.pack(side = "top", fill = "both", expand = True) 
    
         container.grid_rowconfigure(0, weight = 1) 
@@ -99,7 +101,7 @@ class StartPage(tk.Frame):
         self.gradevar = StringVar()
         course = Entry(courseFrame, textvariable=self.coursevar)
         course.pack(side=LEFT)
-        grade = Entry(courseFrame, textvariable=self.gradevar, width=2)
+        grade = Entry(courseFrame, textvariable=self.gradevar, width=3)
         grade.pack(side=LEFT)
 
         #Buttons in btnFrame
@@ -153,9 +155,6 @@ class StartPage(tk.Frame):
         l1 = Label(self.scaleFrame, text=f'A-V-T Rating: {user.style[0]}-{user.style[1]}-{user.style[2]}')
         l1.grid(row = 4, column=1)
 
-    def initData(self):
-        user.courses 
-    
     def done(self):
         if self.startCheck() == True:
             self.controller.show_frame(mainPage)
@@ -254,14 +253,70 @@ class analyticsPage(tk.Frame):
 class gradesPage(tk.Frame):  
     def __init__(self, parent, controller): 
         tk.Frame.__init__(self, parent) 
-        label = ttk.Label(self, text ="Page 2", font = LARGEFONT) 
-        label.grid(row = 0, column = 4, padx = 10, pady = 10) 
-   
-        # button to show frame 3 with text 
-        # layout3 
+        label = ttk.Label(self, text ="Select a Course", anchor=CENTER, font=MEDFONT) 
+        label1 = ttk.Label(self, text ="Update Your Grade", anchor=CENTER, font=MEDFONT) 
+        label.grid(row = 0, column = 0) 
+        label1.grid(row = 1, column = 0)
+        self.controller = controller
+        self.course = None
+
+        updateFrame = Frame(self)
+        updateFrame.grid(row = 2, column = 0)
+        Label(updateFrame, text="Grade: ").pack(side=LEFT)
+        self.gradevar = StringVar()
+        grade = Entry(updateFrame, textvariable=self.gradevar, width=3)
+        grade.pack(side=LEFT)
+
+
+        #Scroll box with currently added courses
+        scrollFrame = Frame(self)
+        scrollFrame.grid(row = 3, column = 0)
+        scroll = Scrollbar(scrollFrame, orient=VERTICAL)
+        self.coursesBox = Listbox(scrollFrame, yscrollcommand=scroll.set, height=6)
+        self.setSelectCourses()
+        scroll.config(command=self.coursesBox.yview)
+        scroll.pack(side=RIGHT, fill=Y)
+        self.coursesBox.pack(side=LEFT, fill=BOTH, expand=1)
+
+        # button to update CSV and return to main
         button1 = ttk.Button(self, text ="Done", 
-                            command = lambda : controller.show_frame(mainPage)) 
-        button1.grid(row = 2, column = 1, padx = 10, pady = 10) 
+                            command = self.done) 
+        button1.grid(row = 4, column = 0, padx = 10, pady = 10) 
+
+        # button to update grade
+        button2 = ttk.Button(updateFrame, text ="Update", 
+                            command = self.updateGrade) 
+        button2.pack() 
+
+    #Course Selection Helpers
+    def setSelectCourses(self):
+        self.coursesBox.delete(0, END)
+        for course, grade in user.courses:
+            self.coursesBox.insert(END, f'{course}-{grade}%')
+
+    def updateGrade(self):
+        self.index = self.whichSelectedCourseBox()
+        grade = self.gradevar.get()
+        self.course = user.courses[index][0]
+        if (grade == ''):
+            messagebox.showerror('Update Grade Error', 'Please enter a grade!')
+        else:
+            user.courses[index] = ((self.course, grade))
+            self.setSelectCourses()
+
+    def whichSelectedCourseBox(self):
+        try:
+            return int(self.coursesBox.curselection()[0])
+        except:
+            return 0
+
+    def done(self):
+        d = readCSV()
+        d[self.course][4] = self.gradevar.get()
+        writeCSV(d)
+        localList = localLog()
+        upateModel(self.index, model, localList)
+        self.controller.show_frame(mainPage)
 
 class sessionPage(tk.Frame):  
     def __init__(self, parent, controller): 
@@ -310,6 +365,7 @@ class sessionPage(tk.Frame):
                             command = self.quit) 
         button1.pack(side=LEFT)
 
+
     #start eyegaze routine, 
     def startSession(self):
         #start eyegaze
@@ -318,6 +374,12 @@ class sessionPage(tk.Frame):
         status = "In Session"
         statusL = ttk.Label(self, text=status, relief=SUNKEN, anchor=W)
         statusL.grid(row=8, columnspan = 2, sticky=W+E)
+
+        #study budy image canvas
+        self.canvas = Canvas(self, width=200, height=200)
+        self.canvas.grid(row=7, column=0)
+        self.img = ImageTk.PhotoImage(Image.open("media/buddy.png").resize((200, 200)))
+        self.canvas.create_image(20, 20, anchor=NW, image=self.img)
 
     def endSession(self):
         #get focus from eyegaze and update the model data
@@ -349,7 +411,10 @@ class sessionPage(tk.Frame):
     
     def refresh(self):
         self.focusVar = ''
+        self.canvas.grid_forget()
 
 #main loop driver
 app = tkinterApp()
+app.title('Study Buddy!')
+app.iconbitmap('media/favicon.ico')
 app.mainloop()

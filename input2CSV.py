@@ -30,28 +30,28 @@ def writeCSV(data):
             grade = float(data[className][4])
             csvWriter.writerow([className, hwFocus, rFocus, nFocus, cFocus, grade])
 
-def getInput(data):
-    print('Enter Class: ')
-    className = input()
-    if className not in data:
-        data[className] = [[0,0],[0,0],[0,0],[0,0],0]
-    print('Enter HW: ')
-    data[className][0][0] += int(input())
-    print('Enter Reading: ')
-    data[className][1][0] += int(input())
-    print('Enter Note-Taking: ')
-    data[className][2][0] += int(input())
-    print('Enter In-Class: ')
-    data[className][3][0] += int(input())
-    print('Enter Grade: ')
-    data[className][4] = int(input())
+# def getInput(data):
+#     print('Enter Class: ')
+#     className = input()
+#     if className not in data:
+#         data[className] = [[0,0],[0,0],[0,0],[0,0],0]
+#     print('Enter HW: ')
+#     data[className][0][0] += int(input())
+#     print('Enter Reading: ')
+#     data[className][1][0] += int(input())
+#     print('Enter Note-Taking: ')
+#     data[className][2][0] += int(input())
+#     print('Enter In-Class: ')
+#     data[className][3][0] += int(input())
+#     print('Enter Grade: ')
+#     data[className][4] = int(input())
 
-    for i in range(len(data[className])-1):
-        data[className][i][1] += 1
+#     for i in range(len(data[className])-1):
+#         data[className][i][1] += 1
     
-    print(data)
+#     print(data)
 
-def deleteEmptyRow():
+def clean():
     lines = list()
     with open('data.csv', 'r') as data:
         reader = csv.reader(data)
@@ -61,14 +61,3 @@ def deleteEmptyRow():
     with open('data.csv', 'w') as data:
         writer = csv.writer(data)
         writer.writerows(lines)
-
-def main():
-    while True:
-        deleteEmptyRow()
-        data = readCSV()
-        getInput(data)
-        writeCSV(data)
-        
-        
-if __name__ == '__main__':
-    main()
