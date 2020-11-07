@@ -4,7 +4,9 @@ from csv import reader
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn import linear_model
+import joblib 
 
+#this is a test main method
 def main():
     datafile = open('courseLog.csv', 'r')
     datareader = csv.reader(datafile, delimiter=',')
@@ -13,8 +15,16 @@ def main():
         courseLog.append(row)    
 
     course0Model = initialTrain(0,courseLog)
-    print("initialModelWeight:",course0Model.coef_)
-
+    print(getWeights(course0Model))
+    print('saving model')
+    saveModel(course0Model, "course0Model")
+    course0Model = getModel("course0Model")
+    courseLog[0][5] = .7
+    courseLog[0][2] = .5
+    updateModel(0, course0Model, courseLog)
+    print(getWeights(course0Model))
+    print('saving model')
+    saveModel(course0Model, "course0Model")
 
 #Helper Function to get training vectors for other functions
 def getVector(course,courseLog):
@@ -43,4 +53,15 @@ def initialTrain(course,courseLog):
 def updateModel(course, model, courseLog): 
     x,y = getVector(course, courseLog)
     model.partial_fit(x, y)
+
+def getWeights(model):
+    return model.coef_
+
+def getModel(modelName):
+    return joblib.load(modelName)
+
+def saveModel(model, modelName):
+    # Save the model as a pickle in a file 
+    joblib.dump(model, modelName) 
+  
 
