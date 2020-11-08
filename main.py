@@ -400,10 +400,15 @@ class sessionPage(tk.Frame):
         self.startTime = time.time()
         #test endTime
         # self.endTime = time.time() + 10
-        self.endTime, focus, distract = startCam()
+        self.endTime, self.focusNum, distract = startCam()
+        print(self.focusNum)
         status = "In Session"
         statusL = ttk.Label(self, text=status, relief=SUNKEN, anchor=W)
         statusL.grid(row=8, columnspan = 2, sticky=W+E)
+        index = types.index(self.Type.get())
+        d = readCSV()
+        d[self.course.get()][index][0] += self.focusNum
+        writeCSV(d)
 
         #study budy image canvas
         self.canvas = Canvas(self, width=200, height=200)
