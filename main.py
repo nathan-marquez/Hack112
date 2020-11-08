@@ -87,7 +87,7 @@ class tkinterApp(tk.Tk):
    
             frame.grid(row = 0, column = 0, sticky ="nsew") 
    
-        self.show_frame(mainPage) 
+        self.show_frame(StartPage) 
    
     # to display the current frame passed as 
     # parameter 
@@ -261,15 +261,69 @@ class analyticsPage(tk.Frame):
     def __init__(self, parent, controller): 
         tk.Frame.__init__(self, parent) 
         label = ttk.Label(self, text ="Analytics", font = LARGEFONT) 
-        label.grid(row = 0, column = 4, padx = 10, pady = 10) 
-   
+        label.grid(row = 0, columnspan = 2, padx = 10, pady = 10) 
+        self.labelFrame = Frame(self)
+        self.labelFrame.grid(row = 2, column=0)
+
+        #Scroll box with currently added courses
+        scrollFrame = Frame(self)
+        scrollFrame.grid(row = 3, column = 0)
+        scroll = Scrollbar(scrollFrame, orient=VERTICAL)
+        self.coursesBox = Listbox(scrollFrame, yscrollcommand=scroll.set, height=6)
+        scroll.config(command=self.coursesBox.yview)
+        scroll.pack(side=RIGHT, fill=Y)
+        self.coursesBox.pack(side=LEFT, fill=BOTH, expand=1)
+        #set initial
+        self.courseVar = user.courses[0][0]
+        self.setSelectCourses()
+
+        #TODO fix first item in list not appearing in drop down menu
+        print("get course", self.courseVar)
+        label1 = ttk.Label(self, text ="Course").grid(row=5, column=0) 
+        self.updateCourseData()
+
+        # button to show course data
+        button1 = ttk.Button(self, text ="View Course Data", 
+                            command = self.updateCourseData)
+        button1.grid(row = 4, column = 1, padx = 10, pady = 10) 
+
         # button to show main page
         button1 = ttk.Button(self, text ="Done", 
                             command = lambda : controller.show_frame(mainPage)) 
-        button1.grid(row = 1, column = 1, padx = 10, pady = 10) 
+        button1.grid(row = 6, column = 1, padx = 10, pady = 10) 
    
         # buildButtons(self)
         # buildScrollingListOfNames(self)
+
+    def updateCourseData(self):
+        self.courseVar = user.courses[self.whichSelectedCourseBox()][0]
+        weights = getWeights(getModel(self.courseVar))
+        tot = sum(weights)
+        hw = int(weights[0]/tot*100)
+        read = int(weights[1]/tot*100)
+        study = int(weights[2]/tot*100)
+        zoom = int(weights[3]/tot*100)
+        label1 = ttk.Label(self.labelFrame, text = f"HW: {hw}%", anchor=CENTER, font=MEDFONT) 
+        label2 = ttk.Label(self.labelFrame, text = f"Reading: {read}%", anchor=CENTER, font=MEDFONT) 
+        label3 = ttk.Label(self.labelFrame, text = f"Study: {study}%", anchor=CENTER, font=MEDFONT) 
+        label4 = ttk.Label(self.labelFrame, text = f"Zoom: {zoom}%", anchor=CENTER, font=MEDFONT) 
+        label1.grid(row = 1, column = 0) 
+        label2.grid(row = 2, column = 0)
+        label3.grid(row = 3, column = 0) 
+        label4.grid(row = 4, column = 0)
+
+    #Course Selection Helpers
+    def setSelectCourses(self):
+        self.coursesBox.delete(0, END)
+        for course, grade in user.courses:
+            self.coursesBox.insert(END, course)
+
+    def whichSelectedCourseBox(self):
+        print("At {0}".format(self.coursesBox.curselection()))
+        try:
+            return int(self.coursesBox.curselection()[0])
+        except:
+            return 0
 
 
 # fourth window frame updateGrades
@@ -398,8 +452,6 @@ class sessionPage(tk.Frame):
         #start eyegaze
         self.recording = True
         self.startTime = time.time()
-        #test endTime
-        # self.endTime = time.time() + 10
         self.endTime, self.focusNum, distract = startCam()
         print(self.focusNum)
         status = "In Session"
@@ -451,7 +503,7 @@ class sessionPage(tk.Frame):
     
     def refresh(self):
         self.focus = ''
-        self.canvas.grid_forget()
+
 
 #main loop driver
 app = tkinterApp()
