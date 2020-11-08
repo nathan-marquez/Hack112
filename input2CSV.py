@@ -7,7 +7,7 @@ def average(focus, n):
 
 def readCSV():
     d = dict()
-    with open('data.csv', 'r') as data:
+    with open('courseLog.csv', 'r') as data:
         csvReader = csv.reader(data)
         for line in csvReader:
             if line[0] not in d:
@@ -19,7 +19,7 @@ def readCSV():
     return d
 
 def writeCSV(data):
-    with open('data.csv', 'w') as f:
+    with open('courseLog.csv', 'w', newline='') as f:
         
         csvWriter = csv.writer(f)
         for className in data:
@@ -29,7 +29,7 @@ def writeCSV(data):
             cFocus = average(data[className][3][0], data[className][3][1])
             grade = float(data[className][4])
             csvWriter.writerow([className, hwFocus, rFocus, nFocus, cFocus, grade])
-
+    # clean()
 # def getInput(data):
 #     print('Enter Class: ')
 #     className = input()
@@ -53,11 +53,11 @@ def writeCSV(data):
 
 def clean():
     lines = list()
-    with open('data.csv', 'r') as data:
+    with open('courseLog.csv', 'r') as data:
         reader = csv.reader(data)
         for line in reader:
             if line != []:
                 lines.append(line)
-    with open('data.csv', 'w') as data:
+    with open('courseLog.csv', 'w') as data:
         writer = csv.writer(data)
         writer.writerows(lines)

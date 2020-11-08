@@ -9,18 +9,31 @@ from dataclasses import make_dataclass
 import pickle, time, csv
 from PIL import Image, ImageTk
 
+# import matplotlib
+# matplotlib.use("TkAgg")
+# from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+# from matplotlib.figure import Figure
+
 #importing ML
 from ml import *
 
 #import csv read
 from input2CSV import *
 
+#import cv buddy
+from buddy import *
+
 #making user dataclass
 User = make_dataclass('User', [('style', tuple), ('courses', list)])
 testcourses = [('15112', 50), ('21127', 75), ('32141',60)]
 teststyle = (3,7,9)
-user = User(teststyle, testcourses) # style is formatted (Auditory#, Visual#, Tacticle#)
+user = User((), []) # style is formatted (Auditory#, Visual#, Tacticle#)
 
+#populate user.courses from CSV
+def initUserCourses(user):
+    d = readCSV()
+    for course in d:
+        user.courses.append((course, d[course][4]))
 #four categories of sessions
 types = ['HW','Reading','Note-Taking','Zoom']
 
@@ -45,14 +58,16 @@ class tkinterApp(tk.Tk):
     # __init__ function for class tkinterApp  
     def __init__(self, *args, **kwargs):  
         #create initial courseLog
-        updateLocalCourseLog(courseLog)
         # __init__ function for class Tk 
         tk.Tk.__init__(self, *args, **kwargs) 
         # self.geometry("300x410")
         # creating a container 
         container = tk.Frame(self)
         container.pack(side = "top", fill = "both", expand = True) 
-   
+
+        #initialize user object's courses from CSV
+        initUserCourses(user)
+
         container.grid_rowconfigure(0, weight = 1) 
         container.grid_columnconfigure(0, weight = 1) 
    
@@ -157,9 +172,17 @@ class StartPage(tk.Frame):
 
     def done(self):
         if self.startCheck() == True:
-            self.controller.show_frame(mainPage)
             self.initializeCourseLogs()
-    
+            self.initCoursesModel()
+            self.controller.show_frame(mainPage)
+
+    def initCoursesModel(self):
+        for i in range(len(user.courses)):
+            courseName = user.courses[i][0]
+            localLog = localList()
+            model = initialTrain(courseName, localLog)
+            saveModel(model, courseName)
+
     #return dictionary
     def initializeCourseLogs(self): #inputs are ints 0 - 100
         A, V, T = user.style
@@ -291,17 +314,18 @@ class gradesPage(tk.Frame):
     #Course Selection Helpers
     def setSelectCourses(self):
         self.coursesBox.delete(0, END)
+        print(user.courses)
         for course, grade in user.courses:
             self.coursesBox.insert(END, f'{course}-{grade}%')
 
     def updateGrade(self):
         self.index = self.whichSelectedCourseBox()
         grade = self.gradevar.get()
-        self.course = user.courses[index][0]
+        self.course = user.courses[self.index][0]
         if (grade == ''):
             messagebox.showerror('Update Grade Error', 'Please enter a grade!')
         else:
-            user.courses[index] = ((self.course, grade))
+            user.courses[self.index] = ((self.course, grade))
             self.setSelectCourses()
 
     def whichSelectedCourseBox(self):
@@ -314,9 +338,13 @@ class gradesPage(tk.Frame):
         d = readCSV()
         d[self.course][4] = self.gradevar.get()
         writeCSV(d)
-        localList = localLog()
-        upateModel(self.index, model, localList)
+        self.gradeUpdate()
         self.controller.show_frame(mainPage)
+
+    def gradeUpdate(self):
+        data = localList()
+        model = getModel(self.course)
+        updateModel(self.index, model, data)
 
 class sessionPage(tk.Frame):  
     def __init__(self, parent, controller): 
@@ -334,7 +362,7 @@ class sessionPage(tk.Frame):
         label.grid(row = 1, column = 0, padx = 10, pady = 10)
         self.course = StringVar()
         self.Type = StringVar()
-        courseMenu = OptionMenu(dropFrame, self.course, *user.courses).grid(row=0, column=1)
+        self.courseMenu = OptionMenu(dropFrame, self.course, *user.courses).grid(row=0, column=1)
         typeMenu = OptionMenu(dropFrame, self.Type, *types).grid(row=1, column=1)
         #TODO fix first item in list not appearing in drop down menu
         label1 = ttk.Label(dropFrame, text ="Course").grid(row=0, column=0) 
@@ -345,8 +373,8 @@ class sessionPage(tk.Frame):
         statusL.grid(row=8, columnspan = 2, sticky=W+E)
 
         #TEMPORARY user input focus
-        self.focusVar = StringVar()
-        focusEntry = Entry(self, textvariable=self.focusVar)
+        self.focus = StringVar()
+        focusEntry = Entry(self, textvariable=self.focus)
         focusEntry.grid(row=3, column=1)
 
         btnFrame = Frame(self)
@@ -365,12 +393,14 @@ class sessionPage(tk.Frame):
                             command = self.quit) 
         button1.pack(side=LEFT)
 
-
     #start eyegaze routine, 
     def startSession(self):
         #start eyegaze
         self.recording = True
         self.startTime = time.time()
+        #test endTime
+        # self.endTime = time.time() + 10
+        self.endTime, focus, distract = startCam()
         status = "In Session"
         statusL = ttk.Label(self, text=status, relief=SUNKEN, anchor=W)
         statusL.grid(row=8, columnspan = 2, sticky=W+E)
@@ -385,8 +415,7 @@ class sessionPage(tk.Frame):
         #get focus from eyegaze and update the model data
         #focus = getFocus()
         #only update model if time elapsed is greater than 5min
-        endTime = time.time()
-        if (endTime - self.startTime > 5) and (self.recording):
+        if (self.endTime - self.startTime > 5) and (self.recording):
             self.recording = False
             self.updateData()
             print('Session Completed!')
@@ -395,22 +424,28 @@ class sessionPage(tk.Frame):
             statusL.grid(row=8, columnspan = 2, sticky=W+E)
         else:
             messagebox.showinfo("Session Error", 'Please allow mininum session time (5min) to elapse!')
-        print(self.focusVar.get())
+        print(self.focus.get())
 
     def updateData(self):
+        index = self.whichSelectedCourse()
+        focus = self.focus.get()
+        print(index, focus)
         #take in course, type(int corresponding to column), focus
         data = readCSV()
-        typeIndex = types.index(self.course)
-        data[course][typeIndex][0] += focus
-        data[course][typeIndex][1] += 1
+        typeIndex = types.index(self.Type.get())
+        data[index][typeIndex][0] += focus
+        data[index][typeIndex][1] += 1
         writeCSV(data)
+
+    def whichSelectedCourse(self):
+        return int(self.courseMenu.curselection())
 
     def quit(self):
         self.refresh()
         self.controller.show_frame(mainPage)
     
     def refresh(self):
-        self.focusVar = ''
+        self.focus = ''
         self.canvas.grid_forget()
 
 #main loop driver
