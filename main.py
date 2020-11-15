@@ -297,6 +297,7 @@ class analyticsPage(tk.Frame):
 
     def updateCourseData(self):
         self.courseVar = user.courses[self.whichSelectedCourseBox()][0]
+        self.refresh()
         weights = getWeights(getModel(self.courseVar))
         tot = sum(weights)
         hw = int(weights[0]/tot*100)
@@ -311,6 +312,11 @@ class analyticsPage(tk.Frame):
         label2.grid(row = 2, column = 0)
         label3.grid(row = 3, column = 0) 
         label4.grid(row = 4, column = 0)
+
+    def refresh(self):
+        self.labelFrame.grid_forget()
+        self.labelFrame = Frame(self)
+        self.labelFrame.grid(row = 2, column=0)
 
     #Course Selection Helpers
     def setSelectCourses(self):

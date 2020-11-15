@@ -4,7 +4,7 @@ Resnik 4 Team Hack112 Project
 # make sure to zip the directory before submission!
 
 
-Welcome to StudyBuddy! Your very own personal study buddy! StudyStalker has two functionalities: An analytics mode, and a buddy mode. 
+Welcome to StudyBuddy! Your very own personal study buddy! StudyBuddy has two functionalities: An analytics mode, and a buddy mode. 
 
 The analytics mode uses a Perceptron Machine Learning Classifier to determine which areas of studying are most impactful. It first initializes this through self calibration when the user reports their style of learning. Your percentages and educational data are displayed on the analytics page.
 
