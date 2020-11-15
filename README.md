@@ -1,8 +1,6 @@
 # Hack112
 Resnik 4 Team Hack112 Project
 
-# make sure to zip the directory before submission!
-
 
 Welcome to StudyBuddy! Your very own personal study buddy! StudyBuddy has two functionalities: An analytics mode, and a buddy mode. 
 
@@ -21,4 +19,4 @@ Joblib
 Sklearn
 Dlib
 pip install GazeTracking
-To run this application, use main.py. If you are on a Mac, make sure you are running with root permissions on vsCode.
+To run this application, use main.py. If you are on a Mac, make sure you are running with root permissions on vsCode, or make sure you are launching the app from the terminal.
